@@ -126,6 +126,84 @@
     .text-right { text-align: right; }
     .text-muted { color: var(--muted); }
     .font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+      header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+      .total-badge { width: 100%; text-align: center; padding: 6px 12px; }
+      .total-badge strong { font-size: 16px; }
+
+      nav { padding: 10px 12px 0; gap: 2px; }
+      nav button { padding: 8px 12px; font-size: 13px; }
+
+      main { padding: 12px; }
+
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+
+      .section-header { flex-wrap: wrap; gap: 8px; }
+      .section-header > div, .section-header > button { flex-shrink: 0; }
+
+      .chart-wrap { height: 200px; }
+
+      .stat .value { font-size: 18px; }
+
+      /* Holdings table → card layout */
+      .hide-mobile { display: none !important; }
+
+      #holdings-wrap table,
+      #holdings-wrap tbody,
+      #holdings-wrap tr,
+      #holdings-wrap td { display: block; width: 100%; }
+
+      #holdings-wrap thead { display: none; }
+
+      #holdings-wrap tr {
+        background: var(--surface2);
+        border-radius: 10px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        padding: 4px 0;
+      }
+
+      #holdings-wrap td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+      #holdings-wrap td:last-child { border-bottom: none; }
+
+      #holdings-wrap td::before {
+        content: attr(data-label);
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        flex-shrink: 0;
+        margin-right: 12px;
+      }
+      #holdings-wrap td[data-label=""]::before { display: none; }
+      #holdings-wrap td[data-label=""] { justify-content: flex-end; }
+
+      #holdings-wrap td input { width: 100px; }
+
+      /* Invest summary table → scrollable */
+      #invest-summary .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+      /* Cash card */
+      #cash-card .section-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+      /* Snap rows */
+      .snap-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .snap-row .text-right { text-align: left; }
+
+      /* Invest tab */
+      #invest-cash-display { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -280,21 +358,23 @@
         <h2>Summary</h2>
         <button class="btn btn-green" onclick="applyPurchase()">Apply Purchase to Portfolio</button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Stock</th>
-            <th>Buy Shares</th>
-            <th>Cost</th>
-            <th>New Shares</th>
-            <th>New Value</th>
-            <th>New Alloc.</th>
-            <th>Target</th>
-          </tr>
-        </thead>
-        <tbody id="invest-table-body"></tbody>
-        <tfoot id="invest-table-foot"></tfoot>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Stock</th>
+              <th>Buy Shares</th>
+              <th>Cost</th>
+              <th>New Shares</th>
+              <th>New Value</th>
+              <th>New Alloc.</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody id="invest-table-body"></tbody>
+          <tfoot id="invest-table-foot"></tfoot>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -540,26 +620,26 @@ function renderTable() {
     const diffCls = Math.abs(diff) < 0.5 ? 'ok' : diff > 0 ? 'over' : 'under';
     const color   = PALETTE[i % PALETTE.length];
     html += `<tr>
-      <td><strong class="font-mono" style="font-size:15px">${s.ticker}</strong></td>
-      <td class="text-muted">${s.name || '—'}</td>
-      <td>
+      <td data-label="Ticker"><strong class="font-mono" style="font-size:15px">${s.ticker}</strong>${s.name ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.name}</div>` : ''}</td>
+      <td data-label="Name" class="text-muted hide-mobile">${s.name || '—'}</td>
+      <td data-label="Shares">
         <input type="number" value="${s.shares}" min="0" step="0.0001"
           style="width:90px" onchange="updateField('${s.id}','shares',this.value)" />
       </td>
-      <td>
+      <td data-label="Price (ag.)">
         <input type="number" value="${Math.round(s.price * 100)}" min="0" step="1" title="Price in agorot"
           style="width:90px" onchange="updatePriceAgorot('${s.id}',this.value)" />
       </td>
-      <td><strong>${fmt(val)}</strong></td>
-      <td>${fmtPct(curPct)}</td>
-      <td>${fmtPct(s.targetPct)}</td>
-      <td><span class="diff ${diffCls}">${diffStr}</span></td>
-      <td style="min-width:100px">
+      <td data-label="Value"><strong>${fmt(val)}</strong></td>
+      <td data-label="Current %">${fmtPct(curPct)}</td>
+      <td data-label="Target %">${fmtPct(s.targetPct)}</td>
+      <td data-label="Diff"><span class="diff ${diffCls}">${diffStr}</span></td>
+      <td data-label="Allocation" class="hide-mobile" style="min-width:100px">
         <div class="bar-wrap">
           <div class="bar" style="width:${Math.min(curPct/Math.max(s.targetPct,1)*100,100)}%;background:${color}"></div>
         </div>
       </td>
-      <td>
+      <td data-label="">
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="editStock('${s.id}')">Edit</button>
           <button class="btn btn-danger" onclick="deleteStock('${s.id}')">✕</button>
