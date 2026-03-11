@@ -127,6 +127,25 @@
     .text-muted { color: var(--muted); }
     .font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
 
+    /* ── Invest feed ── */
+    .feed-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-line { display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; }
+    .feed-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; }
+    .feed-line-bar { width: 2px; background: var(--border); flex: 1; margin-top: 4px; min-height: 20px; }
+    .feed-item:last-child .feed-line-bar { display: none; }
+    .feed-body { flex: 1; min-width: 0; }
+    .feed-date { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+    .feed-amount { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+    .feed-amount span { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+    .feed-purchases { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .feed-chip { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+    .feed-chip .chip-ticker { font-weight: 700; font-size: 13px; font-family: 'SF Mono','Fira Code',monospace; }
+    .feed-chip .chip-shares { font-size: 13px; color: var(--green); font-weight: 600; }
+    .feed-chip .chip-cost { font-size: 11px; color: var(--muted); }
+    .feed-cash-row { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+    .feed-cash-row strong { color: var(--text); }
+
     /* ── Mobile ── */
     @media (max-width: 640px) {
       header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
@@ -376,6 +395,17 @@
         </table>
       </div>
     </div>
+
+    <!-- Invest feed -->
+    <div class="card mt16">
+      <div class="section-header">
+        <h2>Purchase History</h2>
+        <button class="btn btn-danger" style="font-size:12px" onclick="clearInvestHistory()">Clear</button>
+      </div>
+      <div id="invest-feed">
+        <div class="notice">No purchases recorded yet.</div>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════ HISTORY TAB ══════════════ -->
@@ -405,9 +435,10 @@
 const STORAGE_KEY = 'inv_mgr_v1';
 
 let state = {
-  stocks: [],   // { id, ticker, name, shares, price, targetPct }
-  history: [],  // { date, totalValue, stocks: [{ticker, shares, price}] }
-  cash: 0,      // uninvested cash in ILS
+  stocks: [],        // { id, ticker, name, shares, price, targetPct }
+  history: [],       // { date, totalValue, stocks: [{ticker, shares, price}] }
+  investHistory: [], // { date, spent, cashBefore, cashAfter, purchases: [{ticker, shares, price, cost}] }
+  cash: 0,           // uninvested cash in ILS
 };
 
 function load() {
@@ -435,7 +466,7 @@ function switchTab(name) {
   const btns = document.querySelectorAll('nav button');
   const order = ['portfolio', 'invest', 'history'];
   btns[order.indexOf(name)].classList.add('active');
-  if (name === 'invest') { renderInvestCash(); calcRecommendations(); }
+  if (name === 'invest') { renderInvestCash(); calcRecommendations(); renderInvestFeed(); }
   if (name === 'history') renderHistory();
 }
 
@@ -731,17 +762,29 @@ function applyPurchase() {
   }
   const buying = lastRecs.filter(r => r.buyShares > 0).map(r => `${r.ticker} +${r.buyShares} (${fmt(r.cost)})`).join('\n');
   if (!confirm(`Apply this purchase to your portfolio?\n\n${buying}\n\nTotal spent: ${fmt(spent)}\nCash remaining: ${fmt(cash - spent)}`)) return;
+  const cashBefore = cash;
   lastRecs.forEach(r => {
     const s = state.stocks.find(s => s.id === r.id);
     if (s) s.shares += r.buyShares;
   });
   state.cash = Math.max(0, cash - spent);
+  if (!state.investHistory) state.investHistory = [];
+  state.investHistory.unshift({
+    date: new Date().toISOString(),
+    spent,
+    cashBefore,
+    cashAfter: state.cash,
+    purchases: lastRecs.filter(r => r.buyShares > 0).map(r => ({
+      ticker: r.ticker, shares: r.buyShares, price: r.price, cost: r.cost
+    })),
+  });
   save();
   document.getElementById('invest-amount').value = '';
   lastRecs = null;
   document.getElementById('rec-wrap').innerHTML = `<div class="notice">Purchase applied! Cash remaining: <strong>${fmt(state.cash)}</strong>. Enter a new amount to invest.</div>`;
   document.getElementById('invest-summary').style.display = 'none';
   renderInvestCash();
+  renderInvestFeed();
   render();
 }
 
@@ -953,6 +996,69 @@ function renderHistory() {
 }
 
 // ═══════════════════════════════════════════════
+//  INVEST FEED
+// ═══════════════════════════════════════════════
+function renderInvestFeed() {
+  const feed = document.getElementById('invest-feed');
+  if (!feed) return;
+  const history = state.investHistory || [];
+  if (!history.length) {
+    feed.innerHTML = '<div class="notice">No purchases recorded yet.</div>';
+    return;
+  }
+
+  const totalDeposited = history.reduce((s, e) => s + e.spent, 0);
+  const totalShares    = history.reduce((s, e) => s + e.purchases.reduce((ss, p) => ss + p.shares, 0), 0);
+
+  feed.innerHTML = `
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Total Invested</div>
+        <div style="font-size:20px;font-weight:800">${fmt(totalDeposited)}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Purchases</div>
+        <div style="font-size:20px;font-weight:800">${history.length}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Shares Bought</div>
+        <div style="font-size:20px;font-weight:800">${totalShares}</div></div>
+    </div>
+    ${history.map(entry => {
+      const d = new Date(entry.date);
+      const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const chips = entry.purchases.map(p => {
+        const idx = state.stocks.findIndex(s => s.ticker === p.ticker);
+        const color = PALETTE[idx >= 0 ? idx % PALETTE.length : 0];
+        return `<div class="feed-chip" style="border-color:${color}44">
+          <span class="chip-ticker" style="color:${color}">${p.ticker}</span>
+          <span class="chip-shares">+${p.shares}</span>
+          <span class="chip-cost">${fmt(p.cost)}</span>
+        </div>`;
+      }).join('');
+      return `
+        <div class="feed-item">
+          <div class="feed-line">
+            <div class="feed-dot"></div>
+            <div class="feed-line-bar"></div>
+          </div>
+          <div class="feed-body">
+            <div class="feed-date">${dateStr} · ${timeStr}</div>
+            <div class="feed-amount">${fmt(entry.spent)}<span>invested</span></div>
+            <div class="feed-purchases">${chips}</div>
+            <div class="feed-cash-row">
+              <span>Cash before: <strong>${fmt(entry.cashBefore)}</strong></span>
+              <span>Cash after: <strong>${fmt(entry.cashAfter)}</strong></span>
+            </div>
+          </div>
+        </div>`;
+    }).join('')}`;
+}
+
+function clearInvestHistory() {
+  if (!confirm('Clear all purchase history?')) return;
+  state.investHistory = [];
+  save();
+  renderInvestFeed();
+}
+
+// ═══════════════════════════════════════════════
 //  EXPORT / IMPORT
 // ═══════════════════════════════════════════════
 function exportData() {
@@ -993,6 +1099,7 @@ function importData(event) {
 // ═══════════════════════════════════════════════
 load();
 render();
+renderInvestFeed();
 </script>
 </body>
 </html>
