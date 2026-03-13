@@ -255,11 +255,15 @@
       <div class="form-row">
         <div>
           <label>Ticker</label>
-          <input id="f-ticker" placeholder="e.g. AAPL" maxlength="10" style="text-transform:uppercase" />
+          <input id="f-ticker" placeholder="e.g. TEVA" maxlength="10" style="text-transform:uppercase" />
         </div>
         <div>
           <label>Name (optional)</label>
-          <input id="f-name" placeholder="Apple Inc." />
+          <input id="f-name" placeholder="Teva Pharmaceuticals" />
+        </div>
+        <div>
+          <label title="Yahoo Finance symbol. TASE stocks: add .TA (e.g. TEVA.TA). US stocks: plain ticker (e.g. MSFT)">Yahoo Symbol <span style="color:var(--accent);cursor:help" title="Used to fetch live prices. TASE stocks: TEVA.TA · US stocks: MSFT">?</span></label>
+          <input id="f-symbol" placeholder="e.g. TEVA.TA" />
         </div>
         <div>
           <label>Shares Owned</label>
@@ -320,7 +324,8 @@
     <div class="card mt16">
       <div class="section-header">
         <h2>Holdings</h2>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btn-update-all" class="btn btn-ghost" style="font-size:12px" onclick="refreshAllPrices()">↻ Update All Prices</button>
           <button class="btn btn-ghost" style="font-size:12px" onclick="exportData()">Export</button>
           <label class="btn btn-ghost" style="font-size:12px;cursor:pointer">Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label>
           <button class="btn btn-ghost" style="font-size:12px" onclick="saveSnapshot()">Save Snapshot</button>
@@ -496,7 +501,7 @@ const PALETTE = [
 let editingId = null;
 
 function clearForm() {
-  ['f-ticker','f-name','f-shares','f-price','f-pct'].forEach(id => document.getElementById(id).value = '');
+  ['f-ticker','f-name','f-symbol','f-shares','f-price','f-pct'].forEach(id => document.getElementById(id).value = '');
   editingId = null;
   document.querySelector('.btn-primary').textContent = 'Add Stock';
 }
@@ -504,6 +509,7 @@ function clearForm() {
 function addOrUpdateStock() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const name   = document.getElementById('f-name').value.trim();
+  const symbol = document.getElementById('f-symbol').value.trim();
   const shares = parseFloat(document.getElementById('f-shares').value) || 0;
   const price  = (parseFloat(document.getElementById('f-price').value) || 0) / 100;
   const pct    = parseFloat(document.getElementById('f-pct').value) || 0;
@@ -513,14 +519,14 @@ function addOrUpdateStock() {
 
   if (editingId) {
     const s = state.stocks.find(s => s.id === editingId);
-    if (s) { s.ticker = ticker; s.name = name; s.shares = shares; s.price = price; s.targetPct = pct; }
+    if (s) { s.ticker = ticker; s.name = name; s.symbol = symbol; s.shares = shares; s.price = price; s.targetPct = pct; }
     editingId = null;
   } else {
     if (state.stocks.find(s => s.ticker === ticker)) {
       alert('Stock already exists. Click edit to modify it.');
       return;
     }
-    state.stocks.push({ id: uid(), ticker, name, shares, price, targetPct: pct });
+    state.stocks.push({ id: uid(), ticker, name, symbol, shares, price, targetPct: pct });
   }
   save();
   clearForm();
@@ -532,6 +538,7 @@ function editStock(id) {
   if (!s) return;
   document.getElementById('f-ticker').value = s.ticker;
   document.getElementById('f-name').value   = s.name;
+  document.getElementById('f-symbol').value = s.symbol || '';
   document.getElementById('f-shares').value = s.shares;
   document.getElementById('f-price').value  = s.price * 100;
   document.getElementById('f-pct').value    = s.targetPct;
@@ -548,9 +555,61 @@ function deleteStock(id) {
   render();
 }
 
-function updateAllPrices() {
-  // Inline price editing already in table; this focuses the price cells
-  alert('Click any price cell in the table to edit it inline.');
+// ═══════════════════════════════════════════════
+//  LIVE PRICE FETCH (Yahoo Finance)
+// ═══════════════════════════════════════════════
+async function fetchYahooPrice(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error('No data returned');
+  const price = result.meta.regularMarketPrice;
+  const currency = result.meta.currency;
+  if (!price) throw new Error('Price unavailable');
+  return { price, currency };
+}
+
+async function refreshOnePrice(id) {
+  const s = state.stocks.find(s => s.id === id);
+  if (!s || !s.symbol) { alert('No Yahoo Finance symbol set for this stock. Edit the stock and fill in the Yahoo Symbol field.'); return; }
+  const btn = document.getElementById(`refresh-btn-${id}`);
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const { price, currency } = await fetchYahooPrice(s.symbol);
+    // Yahoo returns TASE prices in ILS, US prices in USD — store as-is (app is ILS-based)
+    s.price = price;
+    s.priceUpdatedAt = new Date().toISOString();
+    save();
+    render();
+  } catch (e) {
+    alert(`Could not fetch price for "${s.symbol}".\n${e.message}\n\nCheck the Yahoo Finance symbol is correct (e.g. TEVA.TA for TASE, MSFT for Nasdaq).`);
+    if (btn) { btn.textContent = '↻'; btn.disabled = false; }
+  }
+}
+
+async function refreshAllPrices() {
+  const withSymbol = state.stocks.filter(s => s.symbol);
+  if (!withSymbol.length) { alert('No stocks have a Yahoo Finance symbol set. Edit each stock and fill in the Yahoo Symbol field.'); return; }
+  const btn = document.getElementById('btn-update-all');
+  if (btn) { btn.textContent = '↻ Updating…'; btn.disabled = true; }
+  let updated = 0, failed = [];
+  for (const s of withSymbol) {
+    try {
+      const { price } = await fetchYahooPrice(s.symbol);
+      s.price = price;
+      s.priceUpdatedAt = new Date().toISOString();
+      updated++;
+    } catch {
+      failed.push(s.ticker);
+    }
+  }
+  save();
+  render();
+  if (btn) { btn.textContent = '↻ Update All Prices'; btn.disabled = false; }
+  const msg = `Updated ${updated} stock${updated !== 1 ? 's' : ''}.` + (failed.length ? `\n\nFailed: ${failed.join(', ')} — check their Yahoo symbols.` : '');
+  alert(msg);
 }
 
 // ═══════════════════════════════════════════════
@@ -637,10 +696,10 @@ function renderTable() {
   const total = totalValue();
   let html = `<table>
     <thead><tr>
-      <th>Ticker</th><th>Name</th><th>Shares</th>
-      <th>Price</th><th>Value</th>
+      <th>Ticker</th><th class="hide-mobile">Name</th><th>Shares</th>
+      <th>Price (ag.)</th><th>Value</th>
       <th>Current %</th><th>Target %</th><th>Diff</th>
-      <th>Allocation</th><th></th>
+      <th class="hide-mobile">Allocation</th><th></th>
     </tr></thead><tbody>`;
 
   state.stocks.forEach((s, i) => {
@@ -650,16 +709,32 @@ function renderTable() {
     const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
     const diffCls = Math.abs(diff) < 0.5 ? 'ok' : diff > 0 ? 'over' : 'under';
     const color   = PALETTE[i % PALETTE.length];
+    const updatedAt = s.priceUpdatedAt
+      ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">Updated ${new Date(s.priceUpdatedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`
+      : '';
+    const refreshBtn = s.symbol
+      ? `<button id="refresh-btn-${s.id}" class="btn btn-ghost" style="font-size:12px;padding:5px 8px" title="Fetch live price for ${s.symbol}" onclick="refreshOnePrice('${s.id}')">↻</button>`
+      : `<button class="btn btn-ghost" style="font-size:12px;padding:5px 8px;opacity:.35" title="Set a Yahoo Symbol to enable live price fetch" onclick="editStock('${s.id}')">↻</button>`;
     html += `<tr>
-      <td data-label="Ticker"><strong class="font-mono" style="font-size:15px">${s.ticker}</strong>${s.name ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.name}</div>` : ''}</td>
+      <td data-label="Ticker">
+        <strong class="font-mono" style="font-size:15px">${s.ticker}</strong>
+        ${s.symbol ? `<div style="font-size:10px;color:var(--accent);margin-top:1px">${s.symbol}</div>` : ''}
+        ${s.name ? `<div style="font-size:11px;color:var(--muted);margin-top:1px">${s.name}</div>` : ''}
+      </td>
       <td data-label="Name" class="text-muted hide-mobile">${s.name || '—'}</td>
       <td data-label="Shares">
         <input type="number" value="${s.shares}" min="0" step="0.0001"
           style="width:90px" onchange="updateField('${s.id}','shares',this.value)" />
       </td>
       <td data-label="Price (ag.)">
-        <input type="number" value="${Math.round(s.price * 100)}" min="0" step="1" title="Price in agorot"
-          style="width:90px" onchange="updatePriceAgorot('${s.id}',this.value)" />
+        <div style="display:flex;align-items:center;gap:4px">
+          <div>
+            <input type="number" value="${Math.round(s.price * 100)}" min="0" step="1" title="Price in agorot"
+              style="width:90px" onchange="updatePriceAgorot('${s.id}',this.value)" />
+            ${updatedAt}
+          </div>
+          ${refreshBtn}
+        </div>
       </td>
       <td data-label="Value"><strong>${fmt(val)}</strong></td>
       <td data-label="Current %">${fmtPct(curPct)}</td>
