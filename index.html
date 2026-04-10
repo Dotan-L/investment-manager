@@ -10,6 +10,7 @@
       --bg: #0f1117;
       --surface: #1a1d27;
       --surface2: #22263a;
+      --card2: #22263a;
       --border: #2e3250;
       --accent: #4f7cff;
       --accent2: #7c4fff;
@@ -146,6 +147,32 @@
     .feed-cash-row { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
     .feed-cash-row strong { color: var(--text); }
 
+    /* ── Home tab ── */
+    .home-hero { text-align: center; padding: 32px 20px 24px; }
+    .home-hero .hero-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+    .home-hero .hero-value { font-size: 52px; font-weight: 800; letter-spacing: -2px; line-height: 1; background: linear-gradient(135deg, #4f7cff 0%, #7c4fff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .home-hero .hero-sub { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .home-quote { font-size: 13px; color: var(--muted); font-style: italic; text-align: center; padding: 10px 20px 0; }
+
+    .pnl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .pnl-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .pnl-card .pnl-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .pnl-card .pnl-pct { font-size: 22px; font-weight: 800; line-height: 1.1; }
+    .pnl-card .pnl-ils { font-size: 13px; font-weight: 600; margin-top: 3px; }
+    .pnl-card .pnl-range { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .pnl-gain { color: var(--green); }
+    .pnl-loss { color: var(--red); }
+    .pnl-flat { color: var(--muted); }
+
+    .home-holdings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .home-holding-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .home-holding-card .hc-ticker { font-size: 16px; font-weight: 800; font-family: 'SF Mono','Fira Code',monospace; margin-bottom: 2px; }
+    .home-holding-card .hc-name { font-size: 11px; color: var(--muted); margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .home-holding-card .hc-value { font-size: 18px; font-weight: 700; }
+    .home-holding-card .hc-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .home-bar-wrap { margin-top: 10px; }
+    .home-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+
     /* ── Mobile ── */
     @media (max-width: 640px) {
       header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
@@ -157,7 +184,8 @@
 
       main { padding: 12px; }
 
-      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .grid2, .grid3, .pnl-grid { grid-template-columns: 1fr 1fr; }
+      .home-hero .hero-value { font-size: 38px; }
 
       .section-header { flex-wrap: wrap; gap: 8px; }
       .section-header > div, .section-header > button { flex-shrink: 0; }
@@ -236,15 +264,54 @@
 </header>
 
 <nav>
-  <button class="active" onclick="switchTab('portfolio')">Portfolio</button>
+  <button class="active" onclick="switchTab('home')">Home</button>
+  <button onclick="switchTab('portfolio')">Portfolio</button>
   <button onclick="switchTab('invest')">Invest</button>
   <button onclick="switchTab('history')">History</button>
 </nav>
 
 <main>
 
+  <!-- ══════════════ HOME TAB ══════════════ -->
+  <div id="tab-home" class="tab active">
+
+    <!-- Hero: total value + quote -->
+    <div class="card" style="overflow:hidden;position:relative">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(79,124,255,.08) 0%,transparent 70%);pointer-events:none"></div>
+      <div class="home-hero">
+        <div class="hero-label">Total Portfolio Value</div>
+        <div class="hero-value" id="home-total">₪0</div>
+        <div class="hero-sub" id="home-hero-sub"></div>
+      </div>
+      <div class="home-quote" id="home-quote"></div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:18px;padding-bottom:4px">
+        <button class="btn btn-ghost" style="font-size:12px" onclick="switchTab('portfolio')">View Portfolio →</button>
+        <button class="btn btn-ghost" style="font-size:12px" onclick="refreshAllPrices()">↻ Update Prices</button>
+      </div>
+    </div>
+
+    <!-- P&L cards -->
+    <div class="pnl-grid mt16" id="home-pnl-grid"></div>
+
+    <!-- Mini growth chart -->
+    <div class="card mt16">
+      <div class="section-header" style="margin-bottom:12px">
+        <h2>Growth</h2>
+        <span id="home-chart-label" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chart-home"></canvas></div>
+    </div>
+
+    <!-- Holdings overview -->
+    <div class="card mt16">
+      <h2>Holdings</h2>
+      <div class="home-holdings-grid" id="home-holdings-grid"></div>
+    </div>
+
+  </div>
+
   <!-- ══════════════ PORTFOLIO TAB ══════════════ -->
-  <div id="tab-portfolio" class="tab active">
+  <div id="tab-portfolio" class="tab">
 
     <!-- Add stock form -->
     <div class="card">
@@ -276,6 +343,14 @@
         <div>
           <label>Target Allocation (%)</label>
           <input id="f-pct" type="number" min="0" max="100" step="0.1" placeholder="0" />
+        </div>
+        <div>
+          <label>Avg Cost (agorot) <span style="font-size:10px;color:var(--muted);font-weight:400">for P&amp;L</span></label>
+          <input id="f-avgCost" type="number" min="0" step="1" placeholder="optional" />
+        </div>
+        <div>
+          <label>Yahoo Finance Ticker <span style="font-size:10px;color:var(--muted);font-weight:400">e.g. TEVA.TA</span></label>
+          <input id="f-yahooTicker" placeholder="e.g. IS-FF702.TA" maxlength="20" style="text-transform:uppercase" />
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end">
           <button class="btn btn-primary" onclick="addOrUpdateStock()" style="flex:1">Add Stock</button>
@@ -317,6 +392,11 @@
         <button class="btn btn-green" onclick="adjustCash(1)">+ Deposit</button>
         <button class="btn btn-danger" style="padding:9px 18px;font-size:14px" onclick="adjustCash(-1)">− Withdraw</button>
         <span class="text-muted" style="font-size:12px;align-self:center">Cash is included in total portfolio value</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>Total deposited tracked: <strong id="total-deposited-display" style="color:var(--text)">₪0.00</strong></span>
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="correctTotalDeposited()">Correct</button>
+        <span style="font-size:11px">Use "Correct" if you deposited cash before this tracker existed</span>
       </div>
     </div>
 
@@ -420,6 +500,25 @@
         <h2>Portfolio Growth</h2>
         <button class="btn btn-danger" onclick="clearHistory()" style="font-size:12px">Clear History</button>
       </div>
+      <!-- Period selector -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--muted)">Period:</span>
+        <button class="btn btn-ghost hist-period-btn" data-period="7d"   style="font-size:12px" onclick="setHistPeriod('7d')">1W</button>
+        <button class="btn btn-ghost hist-period-btn" data-period="1m"   style="font-size:12px" onclick="setHistPeriod('1m')">1M</button>
+        <button class="btn btn-ghost hist-period-btn" data-period="3m"   style="font-size:12px" onclick="setHistPeriod('3m')">3M</button>
+        <button class="btn btn-ghost hist-period-btn" data-period="all"  style="font-size:12px" onclick="setHistPeriod('all')">All</button>
+        <input id="hist-custom-months" type="number" min="1" max="120" placeholder="Mo" title="Custom number of months"
+          style="width:52px;padding:4px 6px;font-size:12px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"
+          oninput="setHistPeriod('custom')" />
+      </div>
+      <!-- View toggle -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--muted)">View:</span>
+        <button class="btn btn-ghost hist-view-btn" data-view="portfolio" style="font-size:12px;font-weight:700;border-color:var(--accent)" onclick="setHistView('portfolio')">Portfolio</button>
+        <button class="btn btn-ghost hist-view-btn" data-view="perstock"  style="font-size:12px" onclick="setHistView('perstock')">Per Stock</button>
+      </div>
+      <!-- Period summary -->
+      <div id="hist-period-summary" style="margin-bottom:12px"></div>
       <div class="chart-wrap"><canvas id="chart-history"></canvas></div>
     </div>
 
@@ -441,9 +540,10 @@ const STORAGE_KEY = 'inv_mgr_v1';
 
 let state = {
   stocks: [],        // { id, ticker, name, shares, price, targetPct }
-  history: [],       // { date, totalValue, stocks: [{ticker, shares, price}] }
+  history: [],       // { date, totalValue, totalDeposited, stocks: [{ticker, shares, price}] }
   investHistory: [], // { date, spent, cashBefore, cashAfter, purchases: [{ticker, shares, price, cost}] }
   cash: 0,           // uninvested cash in ILS
+  totalDeposited: 0, // cumulative net cash deposited (deposits minus withdrawals)
 };
 
 function load() {
@@ -451,6 +551,13 @@ function load() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) state = JSON.parse(raw);
   } catch(e) {}
+  // Deduplicate history: keep last snapshot per calendar day
+  const seen = new Map();
+  for (const s of state.history) {
+    seen.set(new Date(s.date).toLocaleDateString('en-CA'), s);
+  }
+  state.history = [...seen.values()];
+  save();
 }
 
 function save() {
@@ -469,10 +576,11 @@ function switchTab(name) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   const btns = document.querySelectorAll('nav button');
-  const order = ['portfolio', 'invest', 'history'];
+  const order = ['home', 'portfolio', 'invest', 'history'];
   btns[order.indexOf(name)].classList.add('active');
-  if (name === 'invest') { renderInvestCash(); calcRecommendations(); renderInvestFeed(); }
+  if (name === 'invest')  { renderInvestCash(); calcRecommendations(); renderInvestFeed(); }
   if (name === 'history') renderHistory();
+  if (name === 'home')    renderHome();
 }
 
 // ═══════════════════════════════════════════════
@@ -483,12 +591,12 @@ function fmt(n) {
 }
 function fmtPct(n) { return Number(n).toFixed(1) + '%'; }
 function totalValue() {
-  return state.stocks.reduce((s, st) => s + st.shares * st.price, 0) + (state.cash || 0);
+  return state.stocks.reduce((s, st) => s + st.shares * st.price / 100, 0) + (state.cash || 0);
 }
 function stocksValue() {
-  return state.stocks.reduce((s, st) => s + st.shares * st.price, 0);
+  return state.stocks.reduce((s, st) => s + st.shares * st.price / 100, 0);
 }
-function stockValue(s) { return s.shares * s.price; }
+function stockValue(s) { return s.shares * s.price / 100; }
 
 const PALETTE = [
   '#4f7cff','#7c4fff','#ff4fa3','#ff6b4f','#ffc84f',
@@ -501,32 +609,34 @@ const PALETTE = [
 let editingId = null;
 
 function clearForm() {
-  ['f-ticker','f-name','f-securityId','f-shares','f-price','f-pct'].forEach(id => document.getElementById(id).value = '');
+  ['f-ticker','f-name','f-securityId','f-shares','f-price','f-pct','f-avgCost','f-yahooTicker'].forEach(id => document.getElementById(id).value = '');
   editingId = null;
   document.querySelector('.btn-primary').textContent = 'Add Stock';
 }
 
 function addOrUpdateStock() {
-  const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
-  const name   = document.getElementById('f-name').value.trim();
-  const securityId = document.getElementById('f-securityId').value.trim();
-  const shares = parseFloat(document.getElementById('f-shares').value) || 0;
-  const price  = (parseFloat(document.getElementById('f-price').value) || 0) / 100;
-  const pct    = parseFloat(document.getElementById('f-pct').value) || 0;
+  const ticker      = document.getElementById('f-ticker').value.trim().toUpperCase();
+  const name        = document.getElementById('f-name').value.trim();
+  const securityId  = document.getElementById('f-securityId').value.trim();
+  const shares      = parseFloat(document.getElementById('f-shares').value) || 0;
+  const price       = parseFloat(document.getElementById('f-price').value) || 0;
+  const pct         = parseFloat(document.getElementById('f-pct').value) || 0;
+  const avgCostILA  = parseFloat(document.getElementById('f-avgCost').value) || 0;
+  const yahooTicker = document.getElementById('f-yahooTicker').value.trim().toUpperCase() || undefined;
 
   if (!ticker) { alert('Please enter a ticker symbol.'); return; }
   if (price <= 0) { alert('Please enter a valid price.'); return; }
 
   if (editingId) {
     const s = state.stocks.find(s => s.id === editingId);
-    if (s) { s.ticker = ticker; s.name = name; s.securityId = securityId; s.shares = shares; s.price = price; s.targetPct = pct; }
+    if (s) { s.ticker = ticker; s.name = name; s.securityId = securityId; s.shares = shares; s.price = price; s.targetPct = pct; s.avgCostILA = avgCostILA; s.yahooTicker = yahooTicker; }
     editingId = null;
   } else {
     if (state.stocks.find(s => s.ticker === ticker)) {
       alert('Stock already exists. Click edit to modify it.');
       return;
     }
-    state.stocks.push({ id: uid(), ticker, name, securityId, shares, price, targetPct: pct });
+    state.stocks.push({ id: uid(), ticker, name, securityId, shares, price, targetPct: pct, avgCostILA, yahooTicker });
   }
   save();
   clearForm();
@@ -536,12 +646,14 @@ function addOrUpdateStock() {
 function editStock(id) {
   const s = state.stocks.find(s => s.id === id);
   if (!s) return;
-  document.getElementById('f-ticker').value = s.ticker;
-  document.getElementById('f-name').value   = s.name;
-  document.getElementById('f-securityId').value = s.securityId || '';
-  document.getElementById('f-shares').value = s.shares;
-  document.getElementById('f-price').value  = s.price * 100;
-  document.getElementById('f-pct').value    = s.targetPct;
+  document.getElementById('f-ticker').value       = s.ticker;
+  document.getElementById('f-name').value         = s.name;
+  document.getElementById('f-securityId').value   = s.securityId || '';
+  document.getElementById('f-shares').value       = s.shares;
+  document.getElementById('f-price').value        = s.price;
+  document.getElementById('f-pct').value          = s.targetPct;
+  document.getElementById('f-avgCost').value      = s.avgCostILA || '';
+  document.getElementById('f-yahooTicker').value  = s.yahooTicker || '';
   editingId = id;
   document.querySelector('.btn-primary').textContent = 'Update Stock';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -556,51 +668,66 @@ function deleteStock(id) {
 }
 
 // ═══════════════════════════════════════════════
-//  LIVE PRICE FETCH (Yahoo Finance)
+//  LIVE PRICE FETCH  (Yahoo Finance via CORS proxy)
 // ═══════════════════════════════════════════════
-async function fetchTasePrice(securityId) {
-  const url = `https://api.tase.co.il/api/company/securitydata?securityId=${securityId}&lang=1`;
-  const res = await fetch(url, {
-    headers: { 'Referer': 'https://www.tase.co.il/', 'Accept': 'application/json' }
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+// Map TASE security ID → Yahoo Finance ticker
+const YAHOO_TICKERS = {
+  '1159250': 'IS-FF702.TA',  // iShares Core S&P 500 UCITS ETF
+  '1159169': 'IS-FF101.TA',  // iShares Core MSCI EM IMI UCITS ETF
+  '1159094': 'IS-FF301.TA',  // iShares Core MSCI Europe UCITS ETF
+  '1146356': 'KSM-F74.TA',   // Kesem (4A) ETF TA-125
+};
+
+function resolveYahooTicker(s) {
+  if (s.securityId && YAHOO_TICKERS[String(s.securityId)]) return YAHOO_TICKERS[String(s.securityId)];
+  if (s.yahooTicker) return s.yahooTicker;
+  return null;
+}
+
+async function fetchTasePrice(s) {
+  const ticker = resolveYahooTicker(s);
+  if (!ticker) throw new Error(`No Yahoo Finance ticker found. Set a TASE security number or a Yahoo Finance Ticker for ${s.ticker}.`);
+
+  // allorigins.win proxies the request server-side (bypasses CORS) and returns
+  // Access-Control-Allow-Origin: * so browsers can read the response.
+  const yfUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?range=1d&interval=1d`;
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`;
+
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error(`Proxy returned HTTP ${res.status}`);
   const data = await res.json();
-  if (data.LastRate == null) throw new Error('Price unavailable in response');
-  return {
-    priceILS: data.LastRate / 100,      // LastRate is in agorot → convert to ILS
-    change:   data.Change ?? null,       // % change from previous close
-    name:     data.Name || null,
-    tradeTime: data.TradeTime || null,
-    tradeDate: data.TradeDate || null,
-  };
+  const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+  if (price == null || price <= 0) throw new Error('Price not found in response');
+  return { priceILS: price, change: null, name: null }; // ILA (agorot)
 }
 
 async function refreshOnePrice(id) {
   const s = state.stocks.find(s => s.id === id);
-  if (!s || !s.securityId) {
-    alert('No TASE security number set for this stock. Edit the stock and fill in the Security Number field.');
+  if (!s || !resolveYahooTicker(s)) {
+    alert('No Yahoo Finance ticker found. Edit the stock and fill in either the TASE Security Number or the Yahoo Finance Ticker field.');
     return;
   }
   const btn = document.getElementById(`refresh-btn-${id}`);
   if (btn) { btn.textContent = '…'; btn.disabled = true; }
   try {
-    const { priceILS, change, name, tradeTime, tradeDate } = await fetchTasePrice(s.securityId);
+    const { priceILS, change, name } = await fetchTasePrice(s);
     s.price = priceILS;
     s.lastChange = change;
     s.priceUpdatedAt = new Date().toISOString();
-    if (name && !s.name) s.name = name; // auto-fill name if empty
+    if (name && !s.name) s.name = name;
     save();
     render();
   } catch (e) {
-    alert(`Could not fetch price for security ${s.securityId}.\n${e.message}\n\nCheck the security number is correct.`);
+    alert(`Could not fetch price for ${s.ticker}.\n${e.message}`);
     if (btn) { btn.textContent = '↻'; btn.disabled = false; }
   }
 }
 
 async function refreshAllPrices() {
-  const withId = state.stocks.filter(s => s.securityId);
+  const withId = state.stocks.filter(s => resolveYahooTicker(s));
   if (!withId.length) {
-    alert('No stocks have a TASE security number set. Edit each stock and fill in the Security Number field.');
+    alert('No stocks have a Yahoo Finance ticker set. Edit each stock and fill in the TASE Security Number or Yahoo Finance Ticker field.');
     return;
   }
   const btn = document.getElementById('btn-update-all');
@@ -608,7 +735,7 @@ async function refreshAllPrices() {
   let updated = 0, failed = [];
   for (const s of withId) {
     try {
-      const { priceILS, change, name } = await fetchTasePrice(s.securityId);
+      const { priceILS, change, name } = await fetchTasePrice(s);
       s.price = priceILS;
       s.lastChange = change;
       s.priceUpdatedAt = new Date().toISOString();
@@ -620,6 +747,7 @@ async function refreshAllPrices() {
   }
   save();
   render();
+  if (updated > 0) saveSnapshot();
   if (btn) { btn.textContent = '↻ Update All Prices'; btn.disabled = false; }
   const msg = `Updated ${updated} stock${updated !== 1 ? 's' : ''}.` +
     (failed.length ? `\n\nFailed: ${failed.join(', ')} — check their security numbers.` : '');
@@ -639,11 +767,25 @@ function render() {
   renderCash();
   renderInvestCash();
   document.getElementById('header-total').textContent = fmt(totalValue());
+  if (document.getElementById('tab-home').classList.contains('active')) renderHome();
 }
 
 function renderCash() {
   const cash = state.cash || 0;
   document.getElementById('cash-display').textContent = fmt(cash);
+  const el = document.getElementById('total-deposited-display');
+  if (el) el.textContent = fmt(state.totalDeposited || 0);
+}
+
+function correctTotalDeposited() {
+  const current = state.totalDeposited || 0;
+  const val = prompt(`Enter the correct total amount you have deposited into this account (net of withdrawals).\n\nCurrent value: ${fmt(current)}`, current.toFixed(2));
+  if (val === null) return;
+  const n = parseFloat(val);
+  if (isNaN(n)) { alert('Invalid number.'); return; }
+  state.totalDeposited = n;
+  save();
+  renderCash();
 }
 
 function adjustCash(sign) {
@@ -653,6 +795,8 @@ function adjustCash(sign) {
     alert('Cannot withdraw more than available cash.'); return;
   }
   state.cash = (state.cash || 0) + sign * amt;
+  if (sign === 1) state.totalDeposited = (state.totalDeposited || 0) + amt;
+  else state.totalDeposited = (state.totalDeposited || 0) - amt;
   document.getElementById('cash-input').value = '';
   save();
   render();
@@ -711,7 +855,7 @@ function renderTable() {
   let html = `<table>
     <thead><tr>
       <th>Ticker</th><th class="hide-mobile">Name</th><th>Shares</th>
-      <th>Price (ag.)</th><th>Value</th>
+      <th>Price (ag.)</th><th>Value</th><th>P&amp;L</th>
       <th>Current %</th><th>Target %</th><th>Diff</th>
       <th class="hide-mobile">Allocation</th><th></th>
     </tr></thead><tbody>`;
@@ -729,9 +873,17 @@ function renderTable() {
     const changeBadge = s.lastChange != null
       ? `<span style="font-size:10px;font-weight:600;color:${s.lastChange >= 0 ? 'var(--green)' : 'var(--red)'}">${s.lastChange >= 0 ? '+' : ''}${Number(s.lastChange).toFixed(2)}%</span>`
       : '';
-    const refreshBtn = s.securityId
-      ? `<button id="refresh-btn-${s.id}" class="btn btn-ghost" style="font-size:12px;padding:5px 8px" title="Fetch live price for #${s.securityId}" onclick="refreshOnePrice('${s.id}')">↻</button>`
-      : `<button class="btn btn-ghost" style="font-size:12px;padding:5px 8px;opacity:.35" title="Set a TASE security number to enable live price fetch" onclick="editStock('${s.id}')">↻</button>`;
+    const avgCost  = s.avgCostILA || 0;
+    const pnlILS   = avgCost > 0 ? (s.price - avgCost) * s.shares / 100 : null;
+    const pnlPct   = avgCost > 0 ? (s.price - avgCost) / avgCost * 100  : null;
+    const pnlCell  = pnlILS !== null
+      ? `<div style="font-weight:600;color:${pnlILS >= 0 ? 'var(--green)' : 'var(--red)'}">${pnlILS >= 0 ? '+' : ''}${fmt(pnlILS)}</div>
+         <div style="font-size:11px;color:${pnlPct >= 0 ? 'var(--green)' : 'var(--red)'}">${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%</div>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    const canRefresh = !!resolveYahooTicker(s);
+    const refreshBtn = canRefresh
+      ? `<button id="refresh-btn-${s.id}" class="btn btn-ghost" style="font-size:12px;padding:5px 8px" title="Fetch live price" onclick="refreshOnePrice('${s.id}')">↻</button>`
+      : `<button class="btn btn-ghost" style="font-size:12px;padding:5px 8px;opacity:.35" title="Set a TASE security number or Yahoo Finance Ticker to enable live price fetch" onclick="editStock('${s.id}')">↻</button>`;
     html += `<tr>
       <td data-label="Ticker">
         <strong class="font-mono" style="font-size:15px">${s.ticker}</strong>
@@ -747,7 +899,7 @@ function renderTable() {
         <div style="display:flex;align-items:center;gap:4px">
           <div>
             <div style="display:flex;align-items:center;gap:6px">
-              <input type="number" value="${Math.round(s.price * 100)}" min="0" step="1" title="Price in agorot"
+              <input type="number" value="${Math.round(s.price)}" min="0" step="1" title="Price in ILA (agorot)"
                 style="width:90px" onchange="updatePriceAgorot('${s.id}',this.value)" />
               ${changeBadge}
             </div>
@@ -757,6 +909,7 @@ function renderTable() {
         </div>
       </td>
       <td data-label="Value"><strong>${fmt(val)}</strong></td>
+      <td data-label="P&L">${pnlCell}</td>
       <td data-label="Current %">${fmtPct(curPct)}</td>
       <td data-label="Target %">${fmtPct(s.targetPct)}</td>
       <td data-label="Diff"><span class="diff ${diffCls}">${diffStr}</span></td>
@@ -780,7 +933,7 @@ function renderTable() {
 function updatePriceAgorot(id, val) {
   const s = state.stocks.find(s => s.id === id);
   if (!s) return;
-  s.price = (parseFloat(val) || 0) / 100;
+  s.price = parseFloat(val) || 0;
   save();
   render();
 }
@@ -860,7 +1013,15 @@ function applyPurchase() {
   const cashBefore = cash;
   lastRecs.forEach(r => {
     const s = state.stocks.find(s => s.id === r.id);
-    if (s) s.shares += r.buyShares;
+    if (s) {
+      if (r.buyShares > 0) {
+        const oldAvg = s.avgCostILA || 0;
+        s.avgCostILA = oldAvg > 0
+          ? (s.shares * oldAvg + r.buyShares * r.price) / (s.shares + r.buyShares)
+          : r.price;
+      }
+      s.shares += r.buyShares;
+    }
   });
   state.cash = Math.max(0, cash - spent);
   if (!state.investHistory) state.investHistory = [];
@@ -902,7 +1063,7 @@ function calcRecommendations() {
     return;
   }
 
-  const total = totalValue();
+  const total = stocksValue();
   const newTotal = total + deposit;
 
   // Compute recommendations
@@ -916,8 +1077,8 @@ function calcRecommendations() {
       wantedVal = newTotal * (s.targetPct / 100);
     }
     const delta = wantedVal - curVal;
-    const buyShares = delta > 0 ? Math.floor(delta / s.price) : 0;
-    const cost = buyShares * s.price;
+    const buyShares = delta > 0 ? Math.floor(delta * 100 / s.price) : 0;
+    const cost = buyShares * s.price / 100;
     return { ...s, buyShares, cost, curVal, wantedVal, delta };
   });
 
@@ -929,8 +1090,8 @@ function calcRecommendations() {
     // Sort by delta descending so most-needed gets priority
     const sorted = [...recs].sort((a, b) => b.delta - a.delta);
     sorted.forEach(r => {
-      r.buyShares = Math.floor(Math.min(r.delta > 0 ? r.delta : 0, remaining) / r.price);
-      r.cost = r.buyShares * r.price;
+      r.buyShares = Math.floor(Math.min(r.delta > 0 ? r.delta : 0, remaining) * 100 / r.price);
+      r.cost = r.buyShares * r.price / 100;
       remaining -= r.cost;
     });
     spent = recs.reduce((s, r) => s + r.cost, 0);
@@ -961,7 +1122,7 @@ function calcRecommendations() {
       <div class="rec-card" style="border-color:${color}55">
         <div class="ticker" style="color:${color}">${r.ticker}</div>
         <div class="shares-rec">${r.buyShares}</div>
-        <div class="meta">shares × ${fmt(r.price)} = <strong>${fmt(r.cost)}</strong></div>
+        <div class="meta">shares × ${Number(r.price).toLocaleString('he-IL')} ILA = <strong>${fmt(r.cost)}</strong></div>
       </div>`;
   }).join('') + '</div>';
 
@@ -969,7 +1130,7 @@ function calcRecommendations() {
   summCard.style.display = 'block';
   tbody.innerHTML = recs.map(r => {
     const newShares = r.shares + r.buyShares;
-    const newVal    = newShares * r.price;
+    const newVal    = newShares * r.price / 100;
     const newAlloc  = newTotalActual ? newVal / newTotalActual * 100 : 0;
     return `<tr>
       <td><strong class="font-mono">${r.ticker}</strong></td>
@@ -994,17 +1155,25 @@ function calcRecommendations() {
 //  HISTORY / SNAPSHOTS
 // ═══════════════════════════════════════════════
 let histChart = null;
+let histPeriod = 'all';
+let histView   = 'portfolio';
 
 function saveSnapshot() {
   if (!state.stocks.length) { alert('Add stocks first.'); return; }
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
   const snap = {
     date: new Date().toISOString(),
     totalValue: totalValue(),
+    totalDeposited: state.totalDeposited || 0,
     stocks: state.stocks.map(s => ({ ticker: s.ticker, shares: s.shares, price: s.price })),
   };
-  state.history.push(snap);
+  const existing = state.history.findIndex(s => new Date(s.date).toLocaleDateString('en-CA') === today);
+  if (existing >= 0) {
+    state.history[existing] = snap; // overwrite today's snapshot with latest prices
+  } else {
+    state.history.push(snap);
+  }
   save();
-  alert('Snapshot saved! View it in the History tab.');
 }
 
 function clearHistory() {
@@ -1014,80 +1183,206 @@ function clearHistory() {
   renderHistory();
 }
 
-function renderHistory() {
-  const snaps = state.history;
-  const snapWrap = document.getElementById('snapshots-wrap');
+function deleteSnapshot(index) {
+  if (!confirm(`Delete snapshot from ${new Date(state.history[index].date).toLocaleString()}?`)) return;
+  state.history.splice(index, 1);
+  save();
+  renderHistory();
+}
 
-  if (!snaps.length) {
+function setHistPeriod(p) {
+  histPeriod = p;
+  // highlight active button
+  document.querySelectorAll('.hist-period-btn').forEach(b => {
+    b.style.fontWeight = b.dataset.period === p ? '700' : '';
+    b.style.borderColor = b.dataset.period === p ? 'var(--accent)' : '';
+  });
+  renderHistory();
+}
+
+function setHistView(v) {
+  histView = v;
+  document.querySelectorAll('.hist-view-btn').forEach(b => {
+    b.style.fontWeight  = b.dataset.view === v ? '700' : '';
+    b.style.borderColor = b.dataset.view === v ? 'var(--accent)' : '';
+  });
+  renderHistory();
+}
+
+function filterSnapsByPeriod(snaps) {
+  if (histPeriod === 'all') return snaps;
+  const now = Date.now();
+  let cutoff;
+  if (histPeriod === '7d')  cutoff = now - 7  * 86400000;
+  else if (histPeriod === '1m')  cutoff = now - 30 * 86400000;
+  else if (histPeriod === '3m')  cutoff = now - 91 * 86400000;
+  else if (histPeriod === 'custom') {
+    const mo = parseInt(document.getElementById('hist-custom-months')?.value) || 1;
+    cutoff = now - mo * 30 * 86400000;
+  }
+  const filtered = snaps.filter(s => new Date(s.date).getTime() >= cutoff);
+  // always include at least the last snapshot before the cutoff as baseline
+  if (filtered.length === 0) return snaps.slice(-1);
+  const firstIdx = snaps.indexOf(filtered[0]);
+  return firstIdx > 0 ? [snaps[firstIdx - 1], ...filtered] : filtered;
+}
+
+function renderHistory() {
+  const allSnaps = state.history;
+  const snapWrap = document.getElementById('snapshots-wrap');
+  const summaryEl = document.getElementById('hist-period-summary');
+
+  if (!allSnaps.length) {
     snapWrap.innerHTML = '<div class="notice">No snapshots yet. Use "Save Snapshot" in the Portfolio tab to record your progress.</div>';
+    if (summaryEl) summaryEl.innerHTML = '';
     if (histChart) { histChart.destroy(); histChart = null; }
     return;
+  }
+
+  const snaps = filterSnapsByPeriod(allSnaps);
+  const first = snaps[0].totalValue;
+  const last  = snaps[snaps.length - 1].totalValue;
+  const change = last - first;
+  const changePct = first ? (change / first * 100) : 0;
+  const isGain = change >= 0;
+  const color  = isGain ? 'var(--green)' : 'var(--red)';
+
+  // Period summary bar
+  if (summaryEl) {
+    summaryEl.innerHTML = snaps.length > 1 ? `
+      <div style="display:flex;gap:24px;flex-wrap:wrap;padding:12px 16px;background:var(--card2);border-radius:10px;border:1px solid var(--border)">
+        <div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Period start</div>
+          <div style="font-weight:600">${fmt(first)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Now</div>
+          <div style="font-weight:600">${fmt(last)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Change</div>
+          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${fmt(change)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">%</div>
+          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${changePct.toFixed(2)}%</div>
+        </div>
+      </div>` : '';
   }
 
   // Chart
   const ctx = document.getElementById('chart-history').getContext('2d');
   if (histChart) histChart.destroy();
+  if (histView === 'portfolio') renderHistoryChartPortfolio(ctx, snaps, first);
+  else renderHistoryChartPerStock(ctx, snaps);
+
+  // Snapshot list (always show all)
+  snapWrap.innerHTML = [...allSnaps].reverse().map((s, ri) => {
+    const i = allSnaps.length - 1 - ri;
+    const prevSnap = i > 0 ? allSnaps[i-1] : null;
+    const prev = prevSnap ? prevSnap.totalValue : null;
+    const chg = prev != null ? s.totalValue - prev : null;
+
+    // Determine market gain vs cash deposits
+    // Treat missing totalDeposited on old snapshots as 0
+    const sDeposited    = s.totalDeposited ?? 0;
+    const prevDeposited = prevSnap ? (prevSnap.totalDeposited ?? 0) : 0;
+    const cashAdded  = chg !== null ? sDeposited - prevDeposited : 0;
+    const marketGain = chg !== null ? chg - cashAdded : null;
+    const marketGainPct = (marketGain !== null && prev) ? (marketGain / prev * 100).toFixed(1) : null;
+
+    // "from start" — market-only gain since first snapshot
+    const firstSnap = allSnaps[0];
+    const firstDeposited = firstSnap.totalDeposited ?? 0;
+    const depositsFromStart   = i > 0 ? sDeposited - firstDeposited : null;
+    const marketGainFromStart = i > 0 ? s.totalValue - firstSnap.totalValue - depositsFromStart : null;
+    const fromStartPct = (marketGainFromStart !== null && firstSnap.totalValue)
+      ? (marketGainFromStart / firstSnap.totalValue * 100).toFixed(1)
+      : null;
+
+    const mgColor = marketGain >= 0 ? 'var(--green)' : 'var(--red)';
+    const cashLine = Math.abs(cashAdded) > 0.01
+      ? `<div style="font-size:11px;color:var(--muted)">deposited: <span style="color:var(--accent)">${cashAdded >= 0 ? '+' : ''}${fmt(cashAdded)}</span></div>`
+      : '';
+
+    return `<div class="snap-row">
+      <div style="flex:1">
+        <div style="font-weight:600">${new Date(s.date).toLocaleString()}</div>
+        <div class="text-muted" style="font-size:12px;margin-top:2px">${s.stocks.map(st => `${st.ticker}: ${st.shares}`).join(' · ')}</div>
+      </div>
+      <div class="text-right" style="margin-right:12px">
+        <div style="font-size:16px;font-weight:700">${fmt(s.totalValue)}</div>
+        ${chg !== null ? `
+        ${cashLine}
+        <div style="font-size:12px;color:${mgColor}">market: ${marketGain >= 0 ? '+' : ''}${fmt(marketGain)} (${marketGainPct}%)</div>
+        ${fromStartPct !== null ? `<div class="text-muted" style="font-size:11px">from start: ${fromStartPct >= 0 ? '+' : ''}${fromStartPct}%</div>` : ''}` : ''}
+      </div>
+      <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;align-self:center" onclick="deleteSnapshot(${i})">Delete</button>
+    </div>`;
+  }).join('');
+}
+
+function renderHistoryChartPortfolio(ctx, snaps, first) {
   const labels = snaps.map(s => new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }));
   const values = snaps.map(s => s.totalValue);
-  const first  = values[0];
-
   histChart = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Portfolio Value',
-        data: values,
-        borderColor: '#4f7cff',
-        backgroundColor: 'rgba(79,124,255,0.1)',
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: '#4f7cff',
-        pointRadius: 5,
-      }]
-    },
+    data: { labels, datasets: [{ label: 'Portfolio Value', data: values, borderColor: '#4f7cff', backgroundColor: 'rgba(79,124,255,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#4f7cff', pointRadius: 5 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
+        tooltip: { callbacks: { label: c => { const v = c.parsed.y, d = v - first, p = first ? d/first*100 : 0; return ` ${fmt(v)}  ${d>=0?'+':''}${fmt(d)} (${p>=0?'+':''}${p.toFixed(2)}%)`; } } }
+      },
+      scales: {
+        x: { ticks: { color: '#7b80a0' }, grid: { color: '#2e3250' } },
+        y: { ticks: { color: '#7b80a0', callback: v => '₪'+(v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: '#2e3250' } }
+      }
+    }
+  });
+}
+
+function renderHistoryChartPerStock(ctx, snaps) {
+  if (!snaps.length) return;
+  const labels = snaps.map(s => new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }));
+  const tickerSet = new Set();
+  snaps.forEach(snap => (snap.stocks || []).forEach(st => tickerSet.add(st.ticker)));
+  const tickers = [...tickerSet];
+  const datasets = tickers.map((ticker, i) => {
+    const color = PALETTE[i % PALETTE.length];
+    const data  = snaps.map(snap => {
+      const entry = (snap.stocks || []).find(st => st.ticker === ticker);
+      return entry ? entry.shares * entry.price / 100 : null;
+    });
+    const firstVal = data.find(v => v !== null);
+    return { label: ticker, data, borderColor: color, backgroundColor: 'transparent', tension: 0.3, pointBackgroundColor: color, pointRadius: 4, spanGaps: true, _firstValue: firstVal };
+  });
+  histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: '#e8eaf6', font: { size: 12 }, padding: 12 } },
         tooltip: {
+          mode: 'index', intersect: false,
           callbacks: {
-            label: ctx => {
-              const val = ctx.parsed.y;
-              const pct = ((val - first) / first * 100);
-              return ` ${fmt(val)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% from start)`;
+            label: c => {
+              const v = c.parsed.y;
+              if (v === null) return null;
+              const fv = c.dataset._firstValue ?? v;
+              const d  = v - fv, p = fv ? d/fv*100 : 0;
+              return ` ${c.dataset.label}: ${fmt(v)}  ${d>=0?'+':''}${fmt(d)} (${p>=0?'+':''}${p.toFixed(1)}%)`;
             }
           }
         }
       },
       scales: {
         x: { ticks: { color: '#7b80a0' }, grid: { color: '#2e3250' } },
-        y: {
-          ticks: { color: '#7b80a0', callback: v => '₪' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v) },
-          grid: { color: '#2e3250' }
-        }
+        y: { ticks: { color: '#7b80a0', callback: v => '₪'+(v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: '#2e3250' } }
       }
     }
   });
-
-  // Snapshot list
-  snapWrap.innerHTML = [...snaps].reverse().map((s, ri) => {
-    const i = snaps.length - 1 - ri;
-    const prev = i > 0 ? snaps[i-1].totalValue : null;
-    const change = prev ? s.totalValue - prev : null;
-    const changePct = prev ? (change / prev * 100).toFixed(1) : null;
-    const fromStart = i > 0 ? ((s.totalValue - snaps[0].totalValue) / snaps[0].totalValue * 100).toFixed(1) : null;
-    return `<div class="snap-row">
-      <div>
-        <div style="font-weight:600">${new Date(s.date).toLocaleString()}</div>
-        <div class="text-muted" style="font-size:12px;margin-top:2px">${s.stocks.map(st => `${st.ticker}: ${st.shares}`).join(' · ')}</div>
-      </div>
-      <div class="text-right">
-        <div style="font-size:16px;font-weight:700">${fmt(s.totalValue)}</div>
-        ${change !== null ? `<div class="text-muted" style="font-size:12px">${change >= 0 ? '+' : ''}${fmt(change)} (${changePct}%) · from start: ${fromStart >= 0 ? '+' : ''}${fromStart}%</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -1177,7 +1472,7 @@ function importData(event) {
       const parsed = JSON.parse(e.target.result);
       if (!parsed.stocks || !Array.isArray(parsed.stocks)) throw new Error('Invalid file');
       if (!confirm(`Import portfolio from "${file.name}"?\nThis will replace your current data.`)) return;
-      state = { stocks: [], history: [], cash: 0, ...parsed };
+      state = { stocks: [], history: [], cash: 0, totalDeposited: 0, ...parsed };
       save();
       render();
       alert('Portfolio imported successfully!');
@@ -1190,10 +1485,182 @@ function importData(event) {
 }
 
 // ═══════════════════════════════════════════════
+//  HOME TAB
+// ═══════════════════════════════════════════════
+const QUOTES = [
+  "The market is a device for transferring money from the impatient to the patient. — Buffett (probably while eating a cheeseburger)",
+  "October: This is one of the peculiarly dangerous months to speculate in stocks. The others are July, January, September, April, November, May, March, June, December, August, and February. — Mark Twain",
+  "I will tell you the secret to getting rich on Wall Street: Be greedy when others are fearful, and fearful when others are greedy. Also, don't touch crypto at 3 AM.",
+  "An investment in knowledge pays the best interest. Unfortunately, your brokerage fee comes second.",
+  "The four most expensive words in the English language: 'This time it's different.' The fifth: 'I'll sell tomorrow.'",
+  "Risk comes from not knowing what you're doing. And also from knowing exactly what you're doing and doing it anyway.",
+  "Buy when there's blood in the streets. Just… maybe not literally.",
+  "Compound interest is the eighth wonder of the world. Your future self is either thanking you or filing a complaint.",
+  "In the short run, the market is a voting machine. In the long run, it's a weighing machine. In the very short run, it's a panic button.",
+  "Diversification is protection against ignorance. But also against your brother-in-law's hot stock tip.",
+  "The stock market is the only store where people run out screaming when things go on sale.",
+  "It takes 20 years to build a reputation and five minutes to ruin it. It takes 20 years to build a portfolio and five minutes to check it obsessively.",
+];
+
+let homeChart = null;
+
+function pnlColor(v) { return v > 0 ? 'pnl-gain' : v < 0 ? 'pnl-loss' : 'pnl-flat'; }
+function pnlSign(v)  { return v >= 0 ? '+' : ''; }
+
+function calcPnl(snaps, days) {
+  if (snaps.length < 2) return null;
+  const now   = Date.now();
+  const cutoff = now - days * 86400000;
+  // find the first snap at or after cutoff (use one before as baseline if exists)
+  const idx = snaps.findIndex(s => new Date(s.date).getTime() >= cutoff);
+  const baseIdx = idx > 0 ? idx - 1 : idx === -1 ? snaps.length - 1 : 0;
+  const base = snaps[baseIdx].totalValue;
+  const last = snaps[snaps.length - 1].totalValue;
+  if (!base) return null;
+  return { change: last - base, pct: (last - base) / base * 100 };
+}
+
+function renderHome() {
+  const snaps = state.history;
+  const total = totalValue();
+
+  // Hero
+  document.getElementById('home-total').textContent = fmt(total);
+
+  // Sub-line: last update time from any stock
+  const updatedAt = state.stocks.map(s => s.priceUpdatedAt).filter(Boolean).sort().pop();
+  document.getElementById('home-hero-sub').textContent = updatedAt
+    ? 'Prices as of ' + new Date(updatedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+    : state.stocks.length ? 'Click ↻ Update Prices to refresh' : 'Add stocks in the Portfolio tab';
+
+  // Quote (changes each page load — picked once per session)
+  if (!window._homeQuote) window._homeQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  document.getElementById('home-quote').textContent = '💬 ' + window._homeQuote;
+
+  // P&L cards
+  const periods = [
+    { label: '1 Week',   days: 7  },
+    { label: '1 Month',  days: 30 },
+    { label: '3 Months', days: 91 },
+    { label: 'All Time', days: Infinity },
+  ];
+  const pnlGrid = document.getElementById('home-pnl-grid');
+  pnlGrid.innerHTML = periods.map(({ label, days }) => {
+    const p = days === Infinity
+      ? (snaps.length >= 2 ? { change: snaps[snaps.length-1].totalValue - snaps[0].totalValue, pct: (snaps[snaps.length-1].totalValue - snaps[0].totalValue) / snaps[0].totalValue * 100 } : null)
+      : calcPnl(snaps, days);
+    if (!p) return `
+      <div class="pnl-card">
+        <div class="pnl-label">${label}</div>
+        <div class="pnl-pct pnl-flat">—</div>
+        <div class="pnl-range">No snapshot data</div>
+      </div>`;
+    const cls = pnlColor(p.change);
+    return `
+      <div class="pnl-card">
+        <div class="pnl-label">${label}</div>
+        <div class="pnl-pct ${cls}">${pnlSign(p.pct)}${p.pct.toFixed(2)}%</div>
+        <div class="pnl-ils ${cls}">${pnlSign(p.change)}${fmt(p.change)}</div>
+      </div>`;
+  }).join('');
+
+  // Mini growth chart (last 3 months or all)
+  const ctx = document.getElementById('chart-home').getContext('2d');
+  if (homeChart) homeChart.destroy();
+  const cutoff3m = Date.now() - 91 * 86400000;
+  let chartSnaps = snaps.filter(s => new Date(s.date).getTime() >= cutoff3m);
+  if (chartSnaps.length < 2) chartSnaps = snaps;
+  const chartLabel = document.getElementById('home-chart-label');
+  if (chartSnaps.length >= 2) {
+    const labels = chartSnaps.map(s => new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }));
+    const values = chartSnaps.map(s => s.totalValue);
+    const first  = values[0];
+    const last   = values[values.length - 1];
+    const isUp   = last >= first;
+    const lineColor = isUp ? '#22c55e' : '#ef4444';
+    chartLabel.textContent = `${pnlSign(last - first)}${fmt(last - first)}  (${pnlSign((last-first)/first*100)}${((last-first)/first*100).toFixed(2)}%)`;
+    chartLabel.style.color = isUp ? 'var(--green)' : 'var(--red)';
+    homeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: lineColor,
+          backgroundColor: isUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: lineColor,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: c => {
+                const v = c.parsed.y, diff = v - first;
+                return ` ${fmt(v)}  ${pnlSign(diff)}${fmt(diff)} (${pnlSign(diff/first*100)}${(diff/first*100).toFixed(2)}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#7b80a0', maxTicksLimit: 6 }, grid: { color: '#2e3250' } },
+          y: { ticks: { color: '#7b80a0', callback: v => '₪'+(v>=1000?(v/1000).toFixed(1)+'k':v) }, grid: { color: '#2e3250' } }
+        }
+      }
+    });
+  } else {
+    chartLabel.textContent = '';
+    homeChart = null;
+    ctx.canvas.parentElement.innerHTML = '<div class="notice" style="height:200px;display:flex;align-items:center;justify-content:center">Save snapshots in the Portfolio tab to see your growth chart</div>';
+  }
+
+  // Holdings cards
+  const holdGrid = document.getElementById('home-holdings-grid');
+  const tot = totalValue();
+  holdGrid.innerHTML = state.stocks.length ? state.stocks.map((s, i) => {
+    const val    = stockValue(s);
+    const curPct = tot ? val / tot * 100 : 0;
+    const color  = PALETTE[i % PALETTE.length];
+    const diff   = curPct - s.targetPct;
+    const diffCls = Math.abs(diff) < 1 ? 'pnl-flat' : diff > 0 ? 'pnl-loss' : 'pnl-gain';
+    const diffStr = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}% vs target`;
+    const avgCost = s.avgCostILA || 0;
+    const unrealILS = avgCost > 0 ? (s.price - avgCost) * s.shares / 100 : null;
+    const unrealPct = avgCost > 0 ? (s.price - avgCost) / avgCost * 100  : null;
+    const pnlLine = unrealILS !== null
+      ? `<div style="font-size:11px;font-weight:600;margin-top:4px;color:${unrealILS >= 0 ? 'var(--green)' : 'var(--red)'}">P&L: ${unrealILS >= 0 ? '+' : ''}${fmt(unrealILS)} (${unrealPct >= 0 ? '+' : ''}${unrealPct.toFixed(1)}%)</div>`
+      : '';
+    return `
+      <div class="home-holding-card">
+        <div class="hc-ticker" style="color:${color}">${s.ticker}</div>
+        <div class="hc-name">${s.name || '—'}</div>
+        <div class="hc-value">${fmt(val)}</div>
+        <div class="hc-meta">${s.shares} shares · ${Number(s.price).toLocaleString('he-IL')} ILA</div>
+        ${pnlLine}
+        <div class="home-bar-wrap">
+          <div class="home-bar-label">
+            <span>${curPct.toFixed(1)}%</span>
+            <span class="${diffCls}" style="font-size:11px">${diffStr}</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="width:${Math.min(curPct/Math.max(s.targetPct,1)*100,100)}%;background:${color}"></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('') : '<div class="notice">No stocks yet — add them in the Portfolio tab.</div>';
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 load();
 render();
+renderHome();
 renderInvestFeed();
 </script>
 </body>

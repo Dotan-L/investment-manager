@@ -1,0 +1,181 @@
+{
+  "stocks": [
+    {
+      "id": "qlbm33a54w",
+      "ticker": "SP500",
+      "name": "IShares S&P 500",
+      "securityId": "1159250",
+      "shares": 15,
+      "price": 225080,
+      "targetPct": 50,
+      "lastChange": null,
+      "priceUpdatedAt": "2026-03-15T09:10:43.215Z"
+    },
+    {
+      "id": "q7smm8lbhkl",
+      "ticker": "MSCI EM",
+      "name": "IShares Evolving Markets",
+      "securityId": "1159169",
+      "shares": 71,
+      "price": 14690,
+      "targetPct": 15,
+      "lastChange": null,
+      "priceUpdatedAt": "2026-03-15T09:10:43.216Z"
+    },
+    {
+      "id": "xneys46nbur",
+      "ticker": "MSCI EUR",
+      "name": "Europe Index",
+      "securityId": "1159094",
+      "shares": 29,
+      "price": 34180,
+      "targetPct": 15,
+      "lastChange": null,
+      "priceUpdatedAt": "2026-03-15T09:10:43.217Z"
+    },
+    {
+      "id": "fwe6fp5e8ya",
+      "ticker": "T.A.125",
+      "name": "Tel Aviv 125",
+      "securityId": "1146356",
+      "shares": 38,
+      "price": 40280,
+      "targetPct": 20,
+      "lastChange": null,
+      "priceUpdatedAt": "2026-03-15T09:10:43.219Z"
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-03-11T14:21:59.889Z",
+      "totalValue": 70031.1843,
+      "stocks": [
+        {
+          "ticker": "SP500",
+          "shares": 15,
+          "price": 233309
+        },
+        {
+          "ticker": "MSCI EM",
+          "shares": 71,
+          "price": 14656
+        },
+        {
+          "ticker": "MSCI EUR",
+          "shares": 29,
+          "price": 35255
+        },
+        {
+          "ticker": "T.A.125",
+          "shares": 38,
+          "price": 37332
+        }
+      ]
+    },
+    {
+      "date": "2026-03-14T17:37:03.772Z",
+      "totalValue": 69629.76,
+      "stocks": [
+        {
+          "ticker": "SP500",
+          "shares": 15,
+          "price": 225080
+        },
+        {
+          "ticker": "MSCI EM",
+          "shares": 71,
+          "price": 14690
+        },
+        {
+          "ticker": "MSCI EUR",
+          "shares": 29,
+          "price": 34180
+        },
+        {
+          "ticker": "T.A.125",
+          "shares": 38,
+          "price": 40280
+        }
+      ]
+    },
+    {
+      "date": "2026-03-15T09:40:36.320Z",
+      "totalValue": 69629.76,
+      "stocks": [
+        {
+          "ticker": "SP500",
+          "shares": 15,
+          "price": 225080
+        },
+        {
+          "ticker": "MSCI EM",
+          "shares": 71,
+          "price": 14690
+        },
+        {
+          "ticker": "MSCI EUR",
+          "shares": 29,
+          "price": 34180
+        },
+        {
+          "ticker": "T.A.125",
+          "shares": 38,
+          "price": 40280
+        }
+      ]
+    },
+    {
+      "date": "2026-03-15T09:10:51.046Z",
+      "totalValue": 69629.76,
+      "stocks": [
+        {
+          "ticker": "SP500",
+          "shares": 15,
+          "price": 225080
+        },
+        {
+          "ticker": "MSCI EM",
+          "shares": 71,
+          "price": 14690
+        },
+        {
+          "ticker": "MSCI EUR",
+          "shares": 29,
+          "price": 34180
+        },
+        {
+          "ticker": "T.A.125",
+          "shares": 38,
+          "price": 40280
+        }
+      ]
+    },
+    {
+      "date": "2026-03-15T09:33:46.531Z",
+      "totalValue": 69629.76,
+      "stocks": [
+        {
+          "ticker": "SP500",
+          "shares": 15,
+          "price": 225080
+        },
+        {
+          "ticker": "MSCI EM",
+          "shares": 71,
+          "price": 14690
+        },
+        {
+          "ticker": "MSCI EUR",
+          "shares": 29,
+          "price": 34180
+        },
+        {
+          "ticker": "T.A.125",
+          "shares": 38,
+          "price": 40280
+        }
+      ]
+    }
+  ],
+  "cash": 219.26
+}
