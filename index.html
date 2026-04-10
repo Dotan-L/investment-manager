@@ -784,8 +784,13 @@ function correctTotalDeposited() {
   const n = parseFloat(val);
   if (isNaN(n)) { alert('Invalid number.'); return; }
   state.totalDeposited = n;
+  // Patch the most recent snapshot so the history immediately reflects the correction
+  if (state.history.length > 0) {
+    state.history[state.history.length - 1].totalDeposited = n;
+  }
   save();
   renderCash();
+  if (document.getElementById('tab-history').classList.contains('active')) renderHistory();
 }
 
 function adjustCash(sign) {
@@ -1240,11 +1245,16 @@ function renderHistory() {
   }
 
   const snaps = filterSnapsByPeriod(allSnaps);
-  const first = snaps[0].totalValue;
-  const last  = snaps[snaps.length - 1].totalValue;
+  const firstSnap = snaps[0];
+  const lastSnap  = snaps[snaps.length - 1];
+  const first = firstSnap.totalValue;
+  const last  = lastSnap.totalValue;
   const change = last - first;
-  const changePct = first ? (change / first * 100) : 0;
-  const isGain = change >= 0;
+  // Market-only gain: subtract deposits made during the period
+  const periodDeposits = (lastSnap.totalDeposited ?? 0) - (firstSnap.totalDeposited ?? 0);
+  const marketChange    = change - periodDeposits;
+  const marketChangePct = first ? (marketChange / first * 100) : 0;
+  const isGain = marketChange >= 0;
   const color  = isGain ? 'var(--green)' : 'var(--red)';
 
   // Period summary bar
@@ -1259,13 +1269,17 @@ function renderHistory() {
           <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Now</div>
           <div style="font-weight:600">${fmt(last)}</div>
         </div>
+        ${periodDeposits > 0.01 ? `<div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Deposited</div>
+          <div style="font-weight:600;color:var(--accent)">+${fmt(periodDeposits)}</div>
+        </div>` : ''}
         <div>
-          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Change</div>
-          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${fmt(change)}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Market gain</div>
+          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${fmt(marketChange)}</div>
         </div>
         <div>
-          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">%</div>
-          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${changePct.toFixed(2)}%</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Return</div>
+          <div style="font-weight:700;font-size:18px;color:${color}">${isGain ? '+' : ''}${marketChangePct.toFixed(2)}%</div>
         </div>
       </div>` : '';
   }
