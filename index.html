@@ -1528,10 +1528,12 @@ function calcPnl(snaps, days) {
   // find the first snap at or after cutoff (use one before as baseline if exists)
   const idx = snaps.findIndex(s => new Date(s.date).getTime() >= cutoff);
   const baseIdx = idx > 0 ? idx - 1 : idx === -1 ? snaps.length - 1 : 0;
-  const base = snaps[baseIdx].totalValue;
-  const last = snaps[snaps.length - 1].totalValue;
-  if (!base) return null;
-  return { change: last - base, pct: (last - base) / base * 100 };
+  const baseSnap = snaps[baseIdx];
+  const lastSnap = snaps[snaps.length - 1];
+  if (!baseSnap.totalValue) return null;
+  const deposits = (lastSnap.totalDeposited ?? 0) - (baseSnap.totalDeposited ?? 0);
+  const marketChange = (lastSnap.totalValue - baseSnap.totalValue) - deposits;
+  return { change: marketChange, pct: marketChange / baseSnap.totalValue * 100 };
 }
 
 function renderHome() {
@@ -1561,7 +1563,13 @@ function renderHome() {
   const pnlGrid = document.getElementById('home-pnl-grid');
   pnlGrid.innerHTML = periods.map(({ label, days }) => {
     const p = days === Infinity
-      ? (snaps.length >= 2 ? { change: snaps[snaps.length-1].totalValue - snaps[0].totalValue, pct: (snaps[snaps.length-1].totalValue - snaps[0].totalValue) / snaps[0].totalValue * 100 } : null)
+      ? (() => {
+          if (snaps.length < 2) return null;
+          const first = snaps[0], last = snaps[snaps.length-1];
+          const deposits = (last.totalDeposited ?? 0) - (first.totalDeposited ?? 0);
+          const marketChange = (last.totalValue - first.totalValue) - deposits;
+          return { change: marketChange, pct: marketChange / first.totalValue * 100 };
+        })()
       : calcPnl(snaps, days);
     if (!p) return `
       <div class="pnl-card">
@@ -1588,11 +1596,15 @@ function renderHome() {
   if (chartSnaps.length >= 2) {
     const labels = chartSnaps.map(s => new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }));
     const values = chartSnaps.map(s => s.totalValue);
-    const first  = values[0];
-    const last   = values[values.length - 1];
-    const isUp   = last >= first;
+    const firstSnap = chartSnaps[0];
+    const lastSnap  = chartSnaps[chartSnaps.length - 1];
+    const first = values[0];
+    const last  = values[values.length - 1];
+    const chartDeposits = (lastSnap.totalDeposited ?? 0) - (firstSnap.totalDeposited ?? 0);
+    const chartMarketGain = (last - first) - chartDeposits;
+    const isUp   = chartMarketGain >= 0;
     const lineColor = isUp ? '#22c55e' : '#ef4444';
-    chartLabel.textContent = `${pnlSign(last - first)}${fmt(last - first)}  (${pnlSign((last-first)/first*100)}${((last-first)/first*100).toFixed(2)}%)`;
+    chartLabel.textContent = `market: ${pnlSign(chartMarketGain)}${fmt(chartMarketGain)}  (${pnlSign(chartMarketGain/first*100)}${(chartMarketGain/first*100).toFixed(2)}%)`;
     chartLabel.style.color = isUp ? 'var(--green)' : 'var(--red)';
     homeChart = new Chart(ctx, {
       type: 'line',
@@ -1615,8 +1627,11 @@ function renderHome() {
           tooltip: {
             callbacks: {
               label: c => {
-                const v = c.parsed.y, diff = v - first;
-                return ` ${fmt(v)}  ${pnlSign(diff)}${fmt(diff)} (${pnlSign(diff/first*100)}${(diff/first*100).toFixed(2)}%)`;
+                const v = c.parsed.y;
+                const snap = chartSnaps[c.dataIndex];
+                const snapDeposits = (snap.totalDeposited ?? 0) - (firstSnap.totalDeposited ?? 0);
+                const marketDiff = (v - first) - snapDeposits;
+                return ` ${fmt(v)}  market: ${pnlSign(marketDiff)}${fmt(marketDiff)} (${pnlSign(marketDiff/first*100)}${(marketDiff/first*100).toFixed(2)}%)`;
               }
             }
           }
